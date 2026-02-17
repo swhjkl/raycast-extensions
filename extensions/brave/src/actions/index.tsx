@@ -1,5 +1,5 @@
 import { runAppleScript, showFailureToast } from "@raycast/utils";
-import { closeMainWindow, getPreferenceValues, popToRoot } from "@raycast/api";
+import { closeMainWindow, getPreferenceValues, popToRoot, open } from "@raycast/api";
 import { SettingsProfileOpenBehaviour, Tab } from "../interfaces";
 import { NOT_INSTALLED_MESSAGE } from "../constants";
 import { exec } from "child_process";
@@ -20,11 +20,12 @@ export async function getOpenTabs(useOriginalFavicon: boolean): Promise<Tab[]> {
         set _window_index to 1
         repeat with w in windows
           set _tab_index to 1
+          set _win_id to id of w
           repeat with t in tabs of w
             set _title to get title of t
             set _url to get URL of t
             set _favicon to ${faviconFormula}
-            set _output to (_output & _title & "${Tab.TAB_CONTENTS_SEPARATOR}" & _url & "${Tab.TAB_CONTENTS_SEPARATOR}" & _favicon & "${Tab.TAB_CONTENTS_SEPARATOR}" & _window_index & "${Tab.TAB_CONTENTS_SEPARATOR}" & _tab_index & "\\n")
+            set _output to (_output & _title & "${Tab.TAB_CONTENTS_SEPARATOR}" & _url & "${Tab.TAB_CONTENTS_SEPARATOR}" & _favicon & "${Tab.TAB_CONTENTS_SEPARATOR}" & _win_id & "${Tab.TAB_CONTENTS_SEPARATOR}" & _tab_index & "\\n")
             set _tab_index to _tab_index + 1
           end repeat
           set _window_index to _window_index + 1
@@ -186,14 +187,12 @@ export async function closeTab(tabIndex: number): Promise<void> {
 
 export async function setActiveTab(tab: Tab): Promise<void> {
   const { browserOption } = getPreferenceValues<Preferences>();
-  await runAppleScript(`
-    tell application "${browserOption}"
-      activate
-      set index of window (${tab.windowsIndex} as number) to (${tab.windowsIndex} as number)
-      set active tab index of window (${tab.windowsIndex} as number) to (${tab.tabIndex} as number)
-    end tell
-    return true
-  `);
+  await open([
+    "hammerspoon://activate_browser_tab",
+    `?browser=${browserOption}`,
+    `&window=${tab.windowsId}`,
+    `&tab=${tab.tabIndex}`
+  ].join(''));
 }
 
 const checkAppInstalled = async (): Promise<boolean> => {
