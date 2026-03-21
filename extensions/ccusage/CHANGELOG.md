@@ -1,5 +1,56 @@
 # Claude Code Usage (ccusage) Changelog
 
+## [Fixed JSON parsing on first run] - 2026-03-21
+
+- Added `extractJSON` helper to strip npx stdout noise (e.g. npm warnings) before parsing JSON
+- Fixes "No output received from ccusage daily command" error on first run or cache refresh
+
+## [v2.2.4] - 2026-03-16
+
+### Changed
+
+- Usage Limits errors now open a dedicated detail view with clearer fetch/parse diagnostics and a quick action to copy the error log
+- Usage limit refresh failures now show actionable toasts with retry and copy-log actions while keeping previously fetched data available when possible
+
+### Fixed
+
+- Prevent runtime errors when the Claude usage limits API returns a `null` `resets_at` value
+- Improved consistency of usage limit error handling across the UI and the `get-usage-limits` too
+
+## [v2.2.3] - 2026-03-16
+
+### Fixed
+
+- Persisted usage limits availability between refreshes so the "Usage Limits" section does not flicker or disappear while OAuth authentication is being rechecked
+
+## [v2.2.2] - 2026-03-04
+
+### Fixed
+
+- Hide "Usage Limits" details for setups of Claude Code that are not authenticated via OAuth
+
+## [v2.2.1] - 2026-03-04
+
+### Fixed
+
+- `npx` path resolution for XDG-based `fnm` installs by detecting `fnm` in both legacy `~/.fnm` and `${XDG_DATA_HOME:-~/.local/share}/fnm` locations
+
+## [v2.2.0] - 2026-02-18
+
+### Added
+
+- New "Claude Code Stats" background command that updates Raycast command subtitle with usage data every 5 minutes
+- Configurable subtitle template with placeholders:
+  - `{dailyCost}` - Today's cost (e.g., "$1.23")
+  - `{dailyTokens}` - Today's total tokens (e.g., "2.34 MTok")
+  - `{dailyInputTokens}` - Today's input tokens
+  - `{dailyOutputTokens}` - Today's output tokens
+  - `{dailyRatio}` - Today's output/input token ratio (e.g., "1.23x")
+  - `{monthlyCost}` - This month's cost
+  - `{monthlyTokens}` - This month's total tokens
+  - `{monthlyRatio}` - This month's output/input token ratio
+  - `{usageLimit}` - 5-hour API usage limit percentage (e.g., "30%")
+
 ## [v2.1.2] - 2026-02-02
 
 ### Fixed
