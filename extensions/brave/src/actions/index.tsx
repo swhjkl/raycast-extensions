@@ -33,7 +33,8 @@ export async function getOpenTabs(useOriginalFavicon: boolean): Promise<Tab[]> {
   return openTabs
     .split("\n")
     .filter((line) => line.length !== 0)
-    .map((line) => Tab.parse(line));
+    .map((line) => Tab.parse(line))
+    .filter((tab) => tab.url != "chrome://newtab/");
 }
 
 export async function openAllBookmarksInFolder({
