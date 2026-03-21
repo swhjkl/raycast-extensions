@@ -5,34 +5,29 @@ import { NOT_INSTALLED_MESSAGE } from "../constants";
 import { exec } from "child_process";
 
 export async function getOpenTabs(useOriginalFavicon: boolean): Promise<Tab[]> {
-  const faviconFormula = useOriginalFavicon
-    ? `execute of tab _tab_index of window _window_index javascript ¬
-                    "document.head.querySelector('link[rel~=icon]').href;"`
-    : '""';
-
-  await checkAppInstalled();
-
-  const { browserOption } = getPreferenceValues<Preferences>();
-
+  const sep = Tab.TAB_CONTENTS_SEPARATOR
   const openTabs = await runAppleScript(`
-      set _output to ""
-      tell application "${browserOption}"
-        set _window_index to 1
-        repeat with w in windows
-          set _tab_index to 1
-          set _win_id to id of w
-          repeat with t in tabs of w
-            set _title to get title of t
-            set _url to get URL of t
-            set _favicon to ${faviconFormula}
-            set _output to (_output & _title & "${Tab.TAB_CONTENTS_SEPARATOR}" & _url & "${Tab.TAB_CONTENTS_SEPARATOR}" & _favicon & "${Tab.TAB_CONTENTS_SEPARATOR}" & _win_id & "${Tab.TAB_CONTENTS_SEPARATOR}" & _tab_index & "\\n")
-            set _tab_index to _tab_index + 1
-          end repeat
-          set _window_index to _window_index + 1
-          if _window_index > count windows then exit repeat
+    set _outputList to {}
+    tell application "Brave Browser"
+      set _windows to windows
+      repeat with w in _windows
+        set _win_id to id of w
+        set _titles to title of tabs of w
+        set _urls to URL of tabs of w
+        repeat with _tab_index from 1 to count of _titles
+          set _title to item _tab_index of _titles
+          set _url to item _tab_index of _urls
+          set _favicon to ""
+          set end of _outputList to (_title & "${sep}" & _url & "${sep}" & _favicon & "${sep}" & _win_id & "${sep}" & _tab_index)
         end repeat
-      end tell
-      return _output
+      end repeat
+    end tell
+
+    set AppleScript's text item delimiters to "\\n"
+    set _output to _outputList as string
+    set AppleScript's text item delimiters to ""
+
+    return _output
   `);
 
   return openTabs
