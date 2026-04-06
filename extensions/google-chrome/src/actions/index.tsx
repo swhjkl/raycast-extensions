@@ -1,40 +1,41 @@
 import { runAppleScript } from "run-applescript";
-import { LocalStorage, popToRoot } from "@raycast/api";
+import { LocalStorage, open, popToRoot } from "@raycast/api";
 import { SettingsProfileOpenBehaviour, Tab } from "../interfaces";
 import { NOT_INSTALLED_MESSAGE } from "../constants";
 import { runAppleScript as runAppleScriptRaycast, showFailureToast } from "@raycast/utils";
 
 export async function getOpenTabs(useOriginalFavicon: boolean): Promise<Tab[]> {
-  const faviconFormula = useOriginalFavicon
-    ? `execute t javascript ¬
-        "document.head.querySelector('link[rel~=icon]') ? document.head.querySelector('link[rel~=icon]').href : '';"`
-    : '""';
-
-  await checkAppInstalled();
-
+  const sep = Tab.TAB_CONTENTS_SEPARATOR
   try {
     const openTabs = await runAppleScript(`
-      set _output to ""
+      set _outputList to {}
       tell application "Google Chrome"
-        repeat with w in windows
-          set _w_id to get id of w as inches as string
-          set _tab_index to 1
-          repeat with t in tabs of w
-            set _title to get title of t
-            set _url to get URL of t
-            set _favicon to ${faviconFormula}
-            set _output to (_output & _title & "${Tab.TAB_CONTENTS_SEPARATOR}" & _url & "${Tab.TAB_CONTENTS_SEPARATOR}" & _favicon & "${Tab.TAB_CONTENTS_SEPARATOR}" & _w_id & "${Tab.TAB_CONTENTS_SEPARATOR}" & _tab_index & "\\n")
-            set _tab_index to _tab_index + 1
+        set _windows to windows
+        repeat with w in _windows
+          set _win_id to id of w
+          set _titles to title of tabs of w
+          set _urls to URL of tabs of w
+          repeat with _tab_index from 1 to count of _titles
+            set _title to item _tab_index of _titles
+            set _url to item _tab_index of _urls
+            set _favicon to ""
+            set end of _outputList to (_title & "${sep}" & _url & "${sep}" & _favicon & "${sep}" & _win_id & "${sep}" & _tab_index)
           end repeat
         end repeat
       end tell
+
+      set AppleScript's text item delimiters to "\\n"
+      set _output to _outputList as string
+      set AppleScript's text item delimiters to ""
+
       return _output
   `);
 
     return openTabs
       .split("\n")
       .filter((line) => line.length !== 0)
-      .map((line) => Tab.parse(line));
+      .map((line) => Tab.parse(line))
+      .filter((tab) => tab.url != "chrome://newtab/");
   } catch (err) {
     if ((err as Error).message.includes('Can\'t get application "Google Chrome"')) {
       LocalStorage.removeItem("is-installed");
@@ -120,15 +121,9 @@ export async function openNewTab({
 }
 
 export async function setActiveTab(tab: Tab): Promise<void> {
-  await runAppleScript(`
-    tell application "Google Chrome"
-      activate
-      set _wnd to first window where id is ${tab.windowsId}
-      set index of _wnd to 1
-      set active tab index of _wnd to ${tab.tabIndex}
-    end tell
-    return true
-  `);
+  await open(
+    `hammerspoon://activate_browser_tab?window=${tab.windowsId}&tab=${tab.tabIndex}`
+  )
 }
 
 export async function closeActiveTab(tab: Tab): Promise<void> {
