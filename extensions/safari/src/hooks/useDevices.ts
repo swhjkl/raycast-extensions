@@ -3,16 +3,11 @@ import { useCachedPromise, useExec, useSQL } from "@raycast/utils";
 import _ from "lodash";
 import { homedir } from "os";
 import { resolve } from "path";
-import { Device, LocalTab, RemoteTab } from "../types";
-import { safariAppIdentifier } from "../utils";
+import { Device, RemoteTab } from "../types";
+import { getAllTabs } from "../safari";
 import { JSX, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { getLocalTabs } from "swift:../../swift/SafariTabs";
 
 const DATABASE_PATH = `${resolve(homedir(), `Library/Containers/com.apple.Safari/Data/Library/Safari`)}/CloudTabs.db`;
-
-function fetchLocalTabs(): Promise<LocalTab[]> {
-  return getLocalTabs(safariAppIdentifier) as Promise<LocalTab[]>;
-}
 
 function useRemoteTabs() {
   return useSQL<RemoteTab>(
@@ -31,7 +26,7 @@ function useDeviceName() {
 }
 
 function useLocalTabs() {
-  return useCachedPromise(fetchLocalTabs, [], { keepPreviousData: true });
+  return useCachedPromise(getAllTabs, [], { keepPreviousData: true });
 }
 
 export default function useDevices() {

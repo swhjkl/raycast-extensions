@@ -3,49 +3,46 @@ import { safariAppIdentifier } from "./utils";
 import { LocalTab } from "./types";
 
 export async function getAllTabs() {
-  const windowCountScript = `tell application "${safariAppIdentifier}" to return count of windows`;
-  const windowCount = parseInt(await runAppleScript(windowCountScript), 10);
+  const output = await runAppleScript(`
+    set _outputList to {}
+    tell application "${safariAppIdentifier}"
+      set _windows to windows
+      repeat with w in _windows
+        set _win_id to id of w
+        set _names to name of tabs of w
+        set _urls to URL of tabs of w
+        repeat with _tab_index from 1 to count of _names
+          set _title to item _tab_index of _names
+          set _url to item _tab_index of _urls
+          set end of _outputList to (_title & ":::" & _url & ":::" & _win_id & ":::" & _tab_index)
+        end repeat
+      end repeat
+    end tell
+
+    set AppleScript's text item delimiters to "|||"
+    set _output to _outputList as string
+    set AppleScript's text item delimiters to ""
+
+    return _output
+  `);
+
+  if (!output) {
+    return [];
+  }
 
   const tabs: LocalTab[] = [];
-
-  // Iterate through each window
-  for (let windowIndex = 1; windowIndex <= windowCount; windowIndex++) {
-    // Get all tabs in this window in one call
-    const windowTabsScript = `
-      tell application "${safariAppIdentifier}"
-        set tabData to ""
-        set windowTabs to tabs of window ${windowIndex}
-        repeat with i from 1 to count of windowTabs
-          set currentTab to item i of windowTabs
-          set tabData to tabData & name of currentTab & ":::" & URL of currentTab
-          if i < count of windowTabs then
-            set tabData to tabData & "|||"
-          end if
-        end repeat
-        return tabData
-      end tell
-    `;
-
-    const tabsData = await runAppleScript(windowTabsScript);
-
-    if (tabsData && tabsData.length > 0) {
-      // Parse the tab data
-      const tabEntries = tabsData.split("|||");
-
-      tabEntries.forEach((tabEntry, index) => {
-        const [title, url] = tabEntry.split(":::");
-        const tabIndex = index + 1;
-
-        tabs.push({
-          uuid: `${windowIndex}-${tabIndex}`,
-          title,
-          url: url || "",
-          window_id: windowIndex,
-          index: tabIndex,
-          is_local: true,
-        });
-      });
-    }
+  for (const entry of output.split("|||")) {
+    if (!entry) continue;
+    const [title, url, windowId, tabIndex] = entry.split(":::");
+    if (title === "Start Page" || title === "iCloud Tabs") continue;
+    tabs.push({
+      uuid: `${windowId}-${tabIndex}`,
+      title,
+      url: url || "",
+      window_id: parseInt(windowId, 10),
+      index: parseInt(tabIndex, 10),
+      is_local: true,
+    });
   }
 
   return tabs;

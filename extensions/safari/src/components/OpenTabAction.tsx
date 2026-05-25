@@ -1,22 +1,16 @@
-import { Action, closeMainWindow, Icon } from "@raycast/api";
-import { runAppleScript } from "@raycast/utils";
+import { Action, closeMainWindow, Icon, open } from "@raycast/api";
 import { LocalTab, Tab } from "../types";
 import { safariAppIdentifier } from "../utils";
 
 async function activateLocalTab(tab: LocalTab) {
-  const script = `
-    tell application "${safariAppIdentifier}"
-      set windowID to ${tab.window_id}
-      set tabID to ${tab.index}
-      set windowObj to window id windowID
-      set tabObj to tab tabID of windowObj
-      set index of windowObj to 1
-      set current tab of windowObj to tabObj
-      activate
-    end tell
-  `;
-
-  await runAppleScript(script);
+  await open(
+    [
+      "hammerspoon://activate_browser_tab",
+      `?browser=${safariAppIdentifier}`,
+      `&window=${tab.window_id}`,
+      `&tab=${tab.index}`,
+    ].join(""),
+  );
 }
 
 export default function OpenTabAction(props: { tab: Tab }) {
